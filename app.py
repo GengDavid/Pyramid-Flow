@@ -16,7 +16,9 @@ model_cache = {}
 model_cache_lock = threading.Lock()
 
 # Configuration
-model_repo = "rain1011/pyramid-flow-sd3"  # Replace with the actual model repository on Hugging Face
+model_name = "pyramid_flux"    # or pyramid_mmdit
+model_repo = "rain1011/pyramid-flow-sd3" if model_name == "pyramid_mmdit" else "rain1011/pyramid-flow-miniflux"
+
 model_dtype = "bf16"                      # Support bf16 and fp32
 variants = {
     'high': 'diffusion_transformer_768p',  # For high-resolution version
@@ -91,8 +93,15 @@ def initialize_model(variant):
 
     # Initialize the model
     try:
+        # TODO: remove this check code after miniflux 768 version is released
+        if model_name == "pyramid_flux":
+            if variant_dir == "diffusion_transformer_768p":
+                raise NotImplementedError("The pyramid_flux does not support high resolution now, we will release it after finishing training. \
+                        You can modify the model_name to pyramid_mmdit to support 768p version generation")
+
         model = PyramidDiTForVideoGeneration(
             base_path,                # Pass the base model path
+            model_name=model_name,     # set to pyramid_flux or pyramid_mmdit
             model_dtype=model_dtype,  # Use bf16
             model_variant=variant_dir,  # Pass the variant directory name
             cpu_offloading=cpu_offloading,  # Pass the CPU offloading flag
@@ -268,7 +277,7 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
     with gr.Row():
         resolution_dropdown = gr.Dropdown(
             choices=["768p", "384p"],
-            value="768p",
+            value="384p",
             label="Model Resolution"
         )
 
@@ -276,7 +285,7 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
         with gr.Row():
             with gr.Column():
                 text_prompt = gr.Textbox(label="Prompt (Less than 128 words)", placeholder="Enter a text prompt for the video", lines=2)
-                temp_slider = gr.Slider(1, 31, value=16, step=1, label="Duration")
+                temp_slider = gr.Slider(1, 16, value=16, step=1, label="Duration")
                 guidance_scale_slider = gr.Slider(1.0, 15.0, value=9.0, step=0.1, label="Guidance Scale")
                 video_guidance_scale_slider = gr.Slider(1.0, 10.0, value=5.0, step=0.1, label="Video Guidance Scale")
                 txt_generate = gr.Button("Generate Video")
@@ -284,9 +293,9 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
                 txt_output = gr.Video(label="Generated Video")
         gr.Examples(
             examples=[
-                ["A movie trailer featuring the adventures of the 30 year old space man wearing a red wool knitted motorcycle helmet, blue sky, salt desert, cinematic style, shot on 35mm film, vivid colors", 16, 9.0, 5.0, "768p"],
-                ["Beautiful, snowy Tokyo city is bustling. The camera moves through the bustling city street, following several people enjoying the beautiful snowy weather and shopping at nearby stalls. Gorgeous sakura petals are flying through the wind along with snowflakes", 16, 9.0, 5.0, "768p"],
-                ["Extreme close-up of chicken and green pepper kebabs grilling on a barbeque with flames. Shallow focus and light smoke. vivid colours", 31, 9.0, 5.0, "768p"],
+                ["A movie trailer featuring the adventures of the 30 year old space man wearing a red wool knitted motorcycle helmet, blue sky, salt desert, cinematic style, shot on 35mm film, vivid colors", 16, 7.0, 5.0, "384p"],
+                ["Beautiful, snowy Tokyo city is bustling. The camera moves through the bustling city street, following several people enjoying the beautiful snowy weather and shopping at nearby stalls. Gorgeous sakura petals are flying through the wind along with snowflakes", 16, 7.0, 5.0, "384p"],
+                # ["Extreme close-up of chicken and green pepper kebabs grilling on a barbeque with flames. Shallow focus and light smoke. vivid colours", 31, 9.0, 5.0, "768p"],
             ],
             inputs=[text_prompt, temp_slider, guidance_scale_slider, video_guidance_scale_slider, resolution_dropdown],
             outputs=[txt_output],
@@ -306,7 +315,7 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
                 img_output = gr.Video(label="Generated Video")
         gr.Examples(
             examples=[
-                ['assets/the_great_wall.jpg', 'FPV flying over the Great Wall', 16, 4.0, "768p"]
+                ['assets/the_great_wall.jpg', 'FPV flying over the Great Wall', 16, 4.0, "384p"]
             ],
             inputs=[image_input, image_prompt, image_temp_slider, image_video_guidance_scale_slider, resolution_dropdown],
             outputs=[img_output],

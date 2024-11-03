@@ -25,7 +25,7 @@ This is the official repository for Pyramid Flow, a training-efficient **Autoreg
 
 * `2024.10.29` ⚡️⚡️⚡️ We release [training code for VAE](#1-training-vae), [finetuning code for DiT](#2-finetuning-dit) and [new model checkpoints](https://huggingface.co/rain1011/pyramid-flow-miniflux) with FLUX structure trained from scratch.
 
-  > We have switched the model structure from SD3 to a mini FLUX to fix human structure issues, please try our 1024p image checkpoint and 384p video checkpoint. We will release 768p video checkpoint in a few days.
+  > We have switched the model structure from SD3 to a mini FLUX to fix human structure issues, please try our 1024p image checkpoint and 384p video checkpoint (up to 5s). The new miniflux model shows great improvement on human structure and motion stability. We will release 768p video checkpoint in a few days.
 
 * `2024.10.13`  ✨✨✨ [Multi-GPU inference](#3-multi-gpu-inference) and [CPU offloading](#cpu-offloading) are supported. Use it with **less than 8GB** of GPU memory, with great speedup on multiple GPUs.
 
@@ -58,7 +58,7 @@ Existing video diffusion models operate at full resolution, spending a lot of co
 
 ## Installation
 
-We recommend setting up the environment with conda. The codebase currently uses Python 3.8.10 and PyTorch 2.1.2, and we are actively working to support a wider range of versions.
+We recommend setting up the environment with conda. The codebase currently uses Python 3.8.10 and PyTorch 2.1.2 ([guide](https://pytorch.org/get-started/previous-versions/#v212)), and we are actively working to support a wider range of versions.
 
 ```bash
 git clone https://github.com/jy0205/Pyramid-Flow
@@ -83,7 +83,7 @@ snapshot_download("rain1011/pyramid-flow-miniflux", local_dir=model_path, local_
 
 ### 1. Quick start with Gradio
 
-To get started, first install [Gradio](https://www.gradio.app/guides/quickstart), set your model path at [#L32](https://github.com/jy0205/Pyramid-Flow/blob/dc07dbf9594d6f81ce8e382ecf70e16dbda252c0/app.py#L32), and then run on your local machine:
+To get started, first install [Gradio](https://www.gradio.app/guides/quickstart), set your model path at [#L36](https://github.com/jy0205/Pyramid-Flow/blob/3777f8b84bddfa2aa2b497ca919b3f40567712e6/app.py#L36), and then run on your local machine:
 
 ```bash
 python app.py
@@ -95,7 +95,7 @@ Or, try it out effortlessly on [Hugging Face Space 🤗](https://huggingface.co/
 
 ### 2. Inference Code
 
-To use our model, please follow the inference code in `video_generation_demo.ipynb` at [this link](https://github.com/jy0205/Pyramid-Flow/blob/main/video_generation_demo.ipynb). We further simplify it into the following two-step procedure. First, load the downloaded model:
+To use our model, please follow the inference code in `video_generation_demo.ipynb` at [this link](https://github.com/jy0205/Pyramid-Flow/blob/main/video_generation_demo.ipynb). We strongly recommend you to try the latest published pyramid-miniflux, which shows great improvement on human structure and motion stability. Set the param `model_name` to `pyramid_flux` to use. We further simplify it into the following two-step procedure. First, load the downloaded model:
 
 ```python
 import torch
@@ -108,6 +108,7 @@ model_dtype, torch_dtype = 'bf16', torch.bfloat16   # Use bf16 (not support fp16
 
 model = PyramidDiTForVideoGeneration(
     'PATH',                                         # The downloaded checkpoint dir
+    model_name="pyramid_flux",
     model_dtype,
     model_variant='diffusion_transformer_384p',     # SD3 supports 'diffusion_transformer_768p'
 )
@@ -121,7 +122,7 @@ model.vae.enable_tiling()
 model.enable_sequential_cpu_offload()
 ```
 
-Then, you can try text-to-video generation on your own prompts:
+Then, you can try text-to-video generation on your own prompts. Noting that the 384p version only support 5s now (set temp up to 16)! 
 
 ```python
 prompt = "A movie trailer featuring the adventures of the 30 year old space man wearing a red wool knitted motorcycle helmet, blue sky, salt desert, cinematic style, shot on 35mm film, vivid colors"
@@ -183,7 +184,7 @@ CUDA_VISIBLE_DEVICES=0,1 sh scripts/inference_multigpu.sh
 
 It currently supports 2 or 4 GPUs, with more configurations available in the original script. You can also launch a [multi-GPU Gradio demo](https://github.com/jy0205/Pyramid-Flow/blob/main/scripts/app_multigpu_engine.sh) created by [@tpc2233](https://github.com/tpc2233), see [#59](https://github.com/jy0205/Pyramid-Flow/pull/59) for details.
 
-  > Spoiler: We didn't even use sequence parallelism in training, thanks to our efficient pyramid flow designs. Stay tuned for the training code.
+  > Spoiler: We didn't even use sequence parallelism in training, thanks to our efficient pyramid flow designs.
 
 ### 4. Usage tips
 
